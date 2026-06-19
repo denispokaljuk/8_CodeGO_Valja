@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ваше новое назначение — Иванюк В.С.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap');
+
+  :root {
+    --primary: #1a365d;
+    --primary-light: #2b6cb0;
+    --accent: #ed8936;
+    --accent-light: #fbd38d;
+    --teal: #319795;
+    --teal-light: #81e6d9;
+    --bg-dark: #0f1a2e;
+    --bg-card: rgba(255,255,255,0.08);
+    --text-white: #f7fafc;
+    --text-muted: #a0aec0;
+    --success: #48bb78;
+    --danger: #fc8181;
+    --purple: #9f7aea;
+    --pink: #ed64a6;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-white);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+  }
+
+  .presentation {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.6s cubic-bezier(.4,0,.2,1), transform 0.6s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide.prev {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ===== BACKGROUNDS ===== */
+  .slide::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -1;
+  }
+
+  .slide-title::before {
+    background: linear-gradient(135deg, #0f1a2e 0%, #1a365d 40%, #2b6cb0 100%);
+  }
+  .slide-title::after {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(237,137,54,0.15) 0%, transparent 70%);
+    z-index: -1;
+  }
+
+  .slide-dark::before {
+    background: linear-gradient(160deg, #0f1a2e 0%, #1a2744 50%, #1a365d 100%);
+  }
+
+  .slide-teal::before {
+    background: linear-gradient(160deg, #0f1a2e 0%, #1a3a3a 50%, #225757 100%);
+  }
+
+  .slide-warm::before {
+    background: linear-gradient(160deg, #1a1a2e 0%, #2d1b3d 50%, #1a365d 100%);
+  }
+
+  .slide-final::before {
+    background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 40%, #319795 100%);
+  }
+
+  /* ===== PROGRESS BAR ===== */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--teal-light));
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+    z-index: 100;
+    box-shadow: 0 0 20px rgba(237,137,54,0.5);
+  }
+
+  /* ===== NAVIGATION ===== */
+  .nav {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+    background: rgba(15,26,46,0.8);
+    backdrop-filter: blur(20px);
+    padding: 10px 24px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .nav-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+
+  .nav-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.1);
+  }
+
+  .nav-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .nav-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .nav-dot.active {
+    background: var(--accent);
+    width: 24px;
+    border-radius: 4px;
+  }
+
+  .slide-counter {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  /* ===== TYPOGRAPHY ===== */
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .slide-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff 0%, var(--teal-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .slide-subheading {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    font-weight: 400;
+  }
+
+  .section-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding: 6px 16px;
+    border: 1px solid rgba(237,137,54,0.3);
+    border-radius: 20px;
+  }
+
+  /* ===== CARDS ===== */
+  .cards-grid {
+    display: grid;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards-4 { grid-template-columns: 1fr 1fr; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .card-accent::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+  .card-teal::before { background: linear-gradient(90deg, var(--teal), var(--teal-light)); }
+  .card-purple::before { background: linear-gradient(90deg, var(--purple), #d6bcfa); }
+  .card-pink::before { background: linear-gradient(90deg, var(--pink), #fbb6ce); }
+  .card-success::before { background: linear-gradient(90deg, var(--success), #9ae6b4); }
+  .card-blue::before { background: linear-gradient(90deg, var(--primary-light), #90cdf4); }
+
+  .card-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+
+  .card-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+
+  .card-text strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ===== INFO BADGE ===== */
+  .badge-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 24px;
+    backdrop-filter: blur(10px);
+  }
+
+  .badge-icon {
+    font-size: 28px;
+  }
+
+  .badge-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .badge-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  .badge-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* ===== TEAM ===== */
+  .team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .team-member {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 20px 28px;
+    transition: all 0.3s;
+  }
+
+  .team-member:hover {
+    transform: translateX(8px);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  .team-member.leader {
+    border-color: rgba(237,137,54,0.3);
+    background: rgba(237,137,54,0.08);
+  }
+
+  .team-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .avatar-leader { background: linear-gradient(135deg, var(--accent), #dd6b20); }
+  .avatar-blue { background: linear-gradient(135deg, var(--primary-light), #2b6cb0); }
+  .avatar-teal { background: linear-gradient(135deg, var(--teal), #2c7a7b); }
+  .avatar-gray { background: linear-gradient(135deg, #4a5568, #718096); }
+
+  .team-info { flex: 1; }
+
+  .team-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .team-role {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .team-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .tag-active { background: rgba(72,187,120,0.15); color: var(--success); }
+  .tag-vacancy { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+  .tag-you { background: rgba(237,137,54,0.15); color: var(--accent); }
+
+  /* ===== LISTS ===== */
+  .feature-list {
+    list-style: none;
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s;
+  }
+
+  .feature-list li:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateX(4px);
+  }
+
+  .feature-list .li-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .feature-list li strong {
+    color: #fff;
+  }
+
+  /* ===== TIMELINE ===== */
+  .timeline {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  .timeline-item {
+    flex: 1;
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    transition: all 0.3s;
+  }
+
+  .timeline-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .timeline-item:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+  .timeline-item:nth-child(2)::before { background: linear-gradient(90deg, var(--teal), var(--teal-light)); }
+  .timeline-item:nth-child(3)::before { background: linear-gradient(90deg, var(--purple), #d6bcfa); }
+
+  .timeline-days {
+    font-size: 42px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+
+  .timeline-item:nth-child(1) .timeline-days { color: var(--accent); }
+  .timeline-item:nth-child(2) .timeline-days { color: var(--teal-light); }
+  .timeline-item:nth-child(3) .timeline-days { color: #d6bcfa; }
+
+  .timeline-period {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  .timeline-goal {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .timeline-tasks {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .timeline-tasks li {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding-left: 20px;
+    position: relative;
+  }
+
+  .timeline-tasks li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 7px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+
+  .timeline-item:nth-child(1) .timeline-tasks li::before { background: rgba(237,137,54,0.5); }
+  .timeline-item:nth-child(2) .timeline-tasks li::before { background: rgba(129,230,217,0.5); }
+  .timeline-item:nth-child(3) .timeline-tasks li::before { background: rgba(214,188,250,0.5); }
+
+  /* ===== METRICS ===== */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .metric-card:hover {
+    transform: scale(1.03);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  .metric-value {
+    font-size: 40px;
+    font-weight: 900;
+    margin-bottom: 8px;
+  }
+
+  .metric-card:nth-child(1) .metric-value { color: var(--accent); }
+  .metric-card:nth-child(2) .metric-value { color: var(--teal-light); }
+  .metric-card:nth-child(3) .metric-value { color: #d6bcfa; }
+  .metric-card:nth-child(4) .metric-value { color: var(--success); }
+
+  .metric-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ===== HIGHLIGHT BOX ===== */
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(237,137,54,0.1), rgba(49,151,149,0.1));
+    border: 1px solid rgba(237,137,54,0.2);
+    border-radius: 16px;
+    padding: 28px 36px;
+    max-width: 800px;
+    text-align: center;
+    margin-top: 24px;
+  }
+
+  .highlight-box p {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+
+  .highlight-box strong {
+    color: var(--accent-light);
+  }
+
+  /* ===== FINAL SLIDE ===== */
+  .final-emoji {
+    font-size: 80px;
+    margin-bottom: 24px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .final-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-light) 50%, var(--teal-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .final-sub {
+    font-size: 20px;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  /* ===== DECORATIVE ===== */
+  .deco-circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.05);
+    pointer-events: none;
+  }
+
+  .slide-title .deco-circle:nth-child(1) {
+    width: 400px; height: 400px;
+    top: -100px; right: -100px;
+  }
+
+  .slide-title .deco-circle:nth-child(2) {
+    width: 300px; height: 300px;
+    bottom: -50px; left: -80px;
+  }
+
+  /* ===== ORG CHART ===== */
+  .org-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .org-box {
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+    position: relative;
+  }
+
+  .org-top {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-muted);
+  }
+
+  .org-mid {
+    background: rgba(237,137,54,0.12);
+    border: 1px solid rgba(237,137,54,0.3);
+    color: var(--accent-light);
+  }
+
+  .org-arrow {
+    width: 2px;
+    height: 20px;
+    background: rgba(255,255,255,0.15);
+    position: relative;
+  }
+
+  .org-arrow::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: -4px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid rgba(255,255,255,0.15);
+  }
+
+  .org-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+
+  /* ===== REG SECTION ===== */
+  .reg-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .reg-item {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .reg-item:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-3px);
+  }
+
+  .reg-num {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--teal);
+    margin-bottom: 6px;
+  }
+
+  .reg-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .reg-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* ===== TOOLS LIST ===== */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .tool-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 24px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .tool-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+  }
+
+  .tool-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .tool-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .tool-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ===== KEYBOARD HINT ===== */
+  .kbd-hint {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: rgba(255,255,255,0.2);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+  }
+
+  /* ===== CONTENT WRAPPER ===== */
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    z-index: 1;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  .slide.active .animate-in {
+    animation: fadeSlideUp 0.6s ease forwards;
+  }
+
+  .animate-in {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .delay-1 { animation-delay: 0.1s !important; }
+  .delay-2 { animation-delay: 0.2s !important; }
+  .delay-3 { animation-delay: 0.3s !important; }
+  .delay-4 { animation-delay: 0.4s !important; }
+  .delay-5 { animation-delay: 0.5s !important; }
+  .delay-6 { animation-delay: 0.6s !important; }
+
+  @keyframes fadeSlideUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ===== RIGHTS LIST ===== */
+  .rights-list {
+    list-style: none;
+    width: 100%;
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .rights-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s;
+  }
+
+  .rights-list li:hover {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .rights-list .li-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 900px) {
+    .slide { padding: 40px 30px; }
+    .hero-title { font-size: 40px; }
+    .slide-heading { font-size: 30px; }
+    .cards-2, .cards-3, .cards-4 { grid-template-columns: 1fr; }
+    .timeline { flex-direction: column; }
+    .reg-grid, .tools-grid { grid-template-columns: 1fr 1fr; }
+    .rights-list { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="presentation" id="presentation">
+
+  <!-- SLIDE 1: TITLE -->
+  <div class="slide slide-title active" data-slide="0">
+    <div class="deco-circle"></div>
+    <div class="deco-circle"></div>
+    <div class="content">
+      <div class="animate-in delay-1">
+        <span class="section-label">ООО «АльденаГрупп» &middot; Брест</span>
+      </div>
+      <h1 class="hero-title animate-in delay-2">Ваше новое<br>назначение</h1>
+      <p class="hero-subtitle animate-in delay-3">Иванюк Валентина Сергеевна</p>
+      <div class="badge-row animate-in delay-4">
+        <div class="badge">
+          <span class="badge-icon">&#127942;</span>
+          <div class="badge-content">
+            <span class="badge-label">Должность</span>
+            <span class="badge-value">Ведущий инженер-конструктор</span>
+          </div>
+        </div>
+        <div class="badge">
+          <span class="badge-icon">&#11088;</span>
+          <div class="badge-content">
+            <span class="badge-label">Функция</span>
+            <span class="badge-value">Руководитель ПКО</span>
+          </div>
+        </div>
+      </div>
+      <div class="badge animate-in delay-5" style="margin-top: 8px;">
+        <span class="badge-icon">&#128197;</span>
+        <div class="badge-content">
+          <span class="badge-label">Дата вступления</span>
+          <span class="badge-value">25 июня 2026 г.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: YOUR POSITION -->
+  <div class="slide slide-dark" data-slide="1">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Ваш статус</span></div>
+      <h2 class="slide-heading animate-in delay-2">Новая должность</h2>
+      <p class="slide-subheading animate-in delay-3">Что меняется с 25 июня 2026 года</p>
+      <div class="cards-grid cards-2 animate-in delay-4" style="max-width: 800px;">
+        <div class="card card-accent">
+          <span class="card-icon">&#128188;</span>
+          <div class="card-title">Должность</div>
+          <div class="card-text">
+            <strong>Ведущий инженер-конструктор</strong> с возложением функций <strong>руководителя проектно-конструкторского отдела</strong>
+          </div>
+        </div>
+        <div class="card card-teal">
+          <span class="card-icon">&#128176;</span>
+          <div class="card-title">Надбавка за руководство</div>
+          <div class="card-text">
+            <strong>300,00 бел. руб.</strong> ежемесячно сверх оклада по должности
+          </div>
+        </div>
+        <div class="card card-purple">
+          <span class="card-icon">&#128200;</span>
+          <div class="card-title">Подчинённость</div>
+          <div class="card-text">
+            Непосредственно <strong>Покалюку Д.Г.</strong>, заместителю директора
+          </div>
+        </div>
+        <div class="card card-success">
+          <span class="card-icon">&#128220;</span>
+          <div class="card-title">Основание</div>
+          <div class="card-text">
+            Приказ о переводе, приказ о возложении функций, <strong>доп. соглашение</strong> к трудовому договору
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: YOUR TEAM -->
+  <div class="slide slide-teal" data-slide="2">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Ваша команда</span></div>
+      <h2 class="slide-heading animate-in delay-2">Проектно-конструкторский отдел</h2>
+      <p class="slide-subheading animate-in delay-3">Состав ПКО и структура подчинённости</p>
+
+      <div class="org-chart animate-in delay-3">
+        <div class="org-box org-top">Заместитель директора — Покалюк Д.Г.</div>
+        <div class="org-arrow"></div>
+        <div class="org-box org-mid">Руководитель ПКО — Иванюк В.С. (Вы)</div>
+      </div>
+
+      <div class="team-list animate-in delay-4">
+        <div class="team-member leader">
+          <div class="team-avatar avatar-leader">ВИ</div>
+          <div class="team-info">
+            <div class="team-name">Иванюк Валентина Сергеевна</div>
+            <div class="team-role">Ведущий инженер-конструктор — руководитель отдела</div>
+          </div>
+          <span class="team-tag tag-you">ВЫ</span>
+        </div>
+        <div class="team-member">
+          <div class="team-avatar avatar-blue">К1</div>
+          <div class="team-info">
+            <div class="team-name">Конструктор 1</div>
+            <div class="team-role">Инженер-конструктор</div>
+          </div>
+          <span class="team-tag tag-active">действующий</span>
+        </div>
+        <div class="team-member">
+          <div class="team-avatar avatar-teal">А1</div>
+          <div class="team-info">
+            <div class="team-name">Архитектор 1</div>
+            <div class="team-role">Архитектор</div>
+          </div>
+          <span class="team-tag tag-active">действующий</span>
+        </div>
+        <div class="team-member">
+          <div class="team-avatar avatar-gray">К2</div>
+          <div class="team-info">
+            <div class="team-name">Конструктор 2</div>
+            <div class="team-role">Инженер-конструктор</div>
+          </div>
+          <span class="team-tag tag-vacancy">вакансия</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: KEY RESPONSIBILITIES OVERVIEW -->
+  <div class="slide slide-dark" data-slide="3">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Обзор</span></div>
+      <h2 class="slide-heading animate-in delay-2">Четыре направления</h2>
+      <p class="slide-subheading animate-in delay-3">Ключевые зоны вашей ответственности</p>
+      <div class="cards-grid cards-4 animate-in delay-4">
+        <div class="card card-accent">
+          <span class="card-icon">&#9881;&#65039;</span>
+          <div class="card-title">Организация работы</div>
+          <div class="card-text">Распределение задач, реестр объектов, контроль сроков, планирование загрузки отдела</div>
+        </div>
+        <div class="card card-teal">
+          <span class="card-icon">&#128269;</span>
+          <div class="card-title">Качество и нормоконтроль</div>
+          <div class="card-text">Проверка чертежей, приёмка документации, соответствие Регламенту КМД</div>
+        </div>
+        <div class="card card-purple">
+          <span class="card-icon">&#127891;</span>
+          <div class="card-title">Персонал и обучение</div>
+          <div class="card-text">Адаптация новичков, наставничество, развитие квалификации сотрудников</div>
+        </div>
+        <div class="card card-pink">
+          <span class="card-icon">&#128203;</span>
+          <div class="card-title">Кадровая функция</div>
+          <div class="card-text">Табель, график отпусков, журналы, отчётность перед руководством</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: ORGANIZATION -->
+  <div class="slide slide-teal" data-slide="4">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Направление 1</span></div>
+      <h2 class="slide-heading animate-in delay-2">Организация работы отдела</h2>
+      <p class="slide-subheading animate-in delay-3">Вы управляете потоком задач и сроков</p>
+      <ul class="feature-list animate-in delay-4">
+        <li>
+          <span class="li-icon">&#128202;</span>
+          <span><strong>Планируете и контролируете</strong> работу отдела по разработке рабочей документации стадии КМД</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128203;</span>
+          <span><strong>Распределяете задачи</strong> между конструкторами и архитектором по объектам, устанавливаете приоритеты и сроки</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128218;</span>
+          <span><strong>Ведёте реестр объектов и сроков</strong> — единый документ, по которому отслеживается каждый объект</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128226;</span>
+          <span><strong>Доводите задачи</strong>, полученные от руководства, до работников отдела и <strong>контролируете их выполнение</strong></span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: QUALITY -->
+  <div class="slide slide-warm" data-slide="5">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Направление 2</span></div>
+      <h2 class="slide-heading animate-in delay-2">Качество и нормоконтроль</h2>
+      <p class="slide-subheading animate-in delay-3">Вы — главный гарант качества документации</p>
+      <ul class="feature-list animate-in delay-4">
+        <li>
+          <span class="li-icon">&#9989;</span>
+          <span><strong>Всецело отвечаете за чертежи отдела</strong> — проверяете и принимаете каждый чертёж перед выпуском</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128221;</span>
+          <span>Проверка по <strong>Регламенту КМД</strong>: разделы 5, 7, 12 — полнота чертежей, спецификации, чеклист конструктора</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128683;</span>
+          <span><strong>Не допускаете к выпуску</strong> документацию, не соответствующую Регламенту — возвращаете на доработку с замечаниями</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128260;</span>
+          <span>Обеспечиваете <strong>единообразие оформления</strong>, маркировки отправочных марок (раздел 2) и порядок внесения изменений (раздел 11)</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: PERSONNEL -->
+  <div class="slide slide-dark" data-slide="6">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Направление 3</span></div>
+      <h2 class="slide-heading animate-in delay-2">Персонал и обучение</h2>
+      <p class="slide-subheading animate-in delay-3">Вы развиваете команду и передаёте знания</p>
+      <ul class="feature-list animate-in delay-4">
+        <li>
+          <span class="li-icon">&#127891;</span>
+          <span><strong>Организуете обучение и адаптацию</strong> вновь принятых работников, ведёте наставничество</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128214;</span>
+          <span><strong>Доводите требования Регламента КМД</strong> до новичков — чтобы каждый чертёж сразу шёл по стандарту</span>
+        </li>
+        <li>
+          <span class="li-icon">&#11088;</span>
+          <span><strong>Оцениваете квалификацию</strong> работников отдела, вносите предложения по поощрению и повышению</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128101;</span>
+          <span>При выходе <strong>Конструктора 2</strong> — запускаете онбординг по готовому плану обучения</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: HR FUNCTION -->
+  <div class="slide slide-teal" data-slide="7">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Направление 4</span></div>
+      <h2 class="slide-heading animate-in delay-2">Кадрово-организационная функция</h2>
+      <p class="slide-subheading animate-in delay-3">Документы руководителя — ваш ежедневный инструмент</p>
+      <div class="cards-grid cards-2 animate-in delay-4" style="max-width: 800px;">
+        <div class="card card-accent">
+          <span class="card-icon">&#128337;</span>
+          <div class="card-title">Табель учёта рабочего времени</div>
+          <div class="card-text">Ежемесячно ведёте табель для всех работников отдела, контролируете соблюдение</div>
+        </div>
+        <div class="card card-teal">
+          <span class="card-icon">&#127958;&#65039;</span>
+          <div class="card-title">График отпусков</div>
+          <div class="card-text">Составляете график отпусков отдела и следите за его соблюдением</div>
+        </div>
+        <div class="card card-purple">
+          <span class="card-icon">&#128221;</span>
+          <div class="card-title">Журналы отдела</div>
+          <div class="card-text">Журнал распределения задач и журнал проверки чертежей (нормоконтроля)</div>
+        </div>
+        <div class="card card-success">
+          <span class="card-icon">&#128200;</span>
+          <div class="card-title">Отчётность</div>
+          <div class="card-text">Готовите еженедельные отчёты о работе отдела для заместителя директора</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: RIGHTS -->
+  <div class="slide slide-warm" data-slide="8">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Полномочия</span></div>
+      <h2 class="slide-heading animate-in delay-2">Ваши права</h2>
+      <p class="slide-subheading animate-in delay-3">Инструменты для эффективного управления отделом</p>
+      <ul class="rights-list animate-in delay-4">
+        <li>
+          <span class="li-icon">&#128172;</span>
+          <span>Давать работникам отдела <strong>обязательные для исполнения</strong> указания</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128260;</span>
+          <span><strong>Распределять и перераспределять</strong> работу между работниками отдела</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128683;</span>
+          <span><strong>Возвращать на доработку</strong> документацию, не соответствующую Регламенту</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128196;</span>
+          <span><strong>Запрашивать</strong> у других подразделений данные, необходимые для работы отдела</span>
+        </li>
+        <li>
+          <span class="li-icon">&#128161;</span>
+          <span><strong>Вносить предложения</strong> по составу отдела, премированию, обучению, ПО и оборудованию</span>
+        </li>
+        <li>
+          <span class="li-icon">&#127981;</span>
+          <span><strong>Представлять отдел</strong> во взаимодействии с другими подразделениями</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: KMD REGULATION -->
+  <div class="slide slide-dark" data-slide="9">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Нормативная база</span></div>
+      <h2 class="slide-heading animate-in delay-2">Регламент КМД</h2>
+      <p class="slide-subheading animate-in delay-3">Ваш главный рабочий документ — 12 разделов</p>
+      <div class="reg-grid animate-in delay-4">
+        <div class="reg-item">
+          <div class="reg-num">01</div>
+          <div class="reg-title">Общие положения</div>
+          <div class="reg-desc">Нормативные ссылки, определения, ответственность</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">02</div>
+          <div class="reg-title">Состав комплекта КМД</div>
+          <div class="reg-desc">Титульный лист, маркировка отправочных марок</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">03</div>
+          <div class="reg-title">Оформление листов</div>
+          <div class="reg-desc">Форматы, рамки, штампы, шрифты, линии, масштабы</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">04</div>
+          <div class="reg-title">Компоновка</div>
+          <div class="reg-desc">Расположение изображений, проекционная связь</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">05</div>
+          <div class="reg-title">Полнота чертежей</div>
+          <div class="reg-desc">Минимум изображений, узлы, разрезы, размеры</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">06</div>
+          <div class="reg-title">Детали и раскрой</div>
+          <div class="reg-desc">Чертежи деталей, CutLogic 1D, DXF для лазера</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">07</div>
+          <div class="reg-title">Спецификации</div>
+          <div class="reg-desc">Металлопрокат, сводные спецификации, ведомости</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">08</div>
+          <div class="reg-title">Общие данные</div>
+          <div class="reg-desc">Лист «Общие данные» комплекта КМД</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">09</div>
+          <div class="reg-title">Сварные швы</div>
+          <div class="reg-desc">Нанесение и обозначение по ГОСТ</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">10</div>
+          <div class="reg-title">Нумерация</div>
+          <div class="reg-desc">Обозначение документов в комплекте</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">11</div>
+          <div class="reg-title">Изменения</div>
+          <div class="reg-desc">Порядок внесения изменений в документацию</div>
+        </div>
+        <div class="reg-item">
+          <div class="reg-num">12</div>
+          <div class="reg-title">Чеклист</div>
+          <div class="reg-desc">Контрольный лист перед выпуском чертежа</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: MANAGEMENT TOOLS -->
+  <div class="slide slide-teal" data-slide="10">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Инструментарий</span></div>
+      <h2 class="slide-heading animate-in delay-2">Ваши инструменты</h2>
+      <p class="slide-subheading animate-in delay-3">Готовые шаблоны для ежедневной работы руководителя</p>
+      <div class="tools-grid animate-in delay-4">
+        <div class="tool-card">
+          <div class="tool-icon">&#128337;</div>
+          <div class="tool-name">Табель учёта</div>
+          <div class="tool-desc">Учёт рабочего времени сотрудников отдела</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#127958;&#65039;</div>
+          <div class="tool-name">График отпусков</div>
+          <div class="tool-desc">Планирование и контроль отпусков отдела</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128203;</div>
+          <div class="tool-name">Журнал задач</div>
+          <div class="tool-desc">Распределение задач по объектам и сотрудникам</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128269;</div>
+          <div class="tool-name">Журнал нормоконтроля</div>
+          <div class="tool-desc">Проверка и приёмка чертежей</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128218;</div>
+          <div class="tool-name">Реестр объектов</div>
+          <div class="tool-desc">Все объекты, сроки и статусы в одном месте</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128200;</div>
+          <div class="tool-name">Еженедельный отчёт</div>
+          <div class="tool-desc">Отчётность перед заместителем директора</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: 30/60/90 PLAN -->
+  <div class="slide slide-warm" data-slide="11">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Адаптация</span></div>
+      <h2 class="slide-heading animate-in delay-2">План 30 / 60 / 90 дней</h2>
+      <p class="slide-subheading animate-in delay-3">Пошаговый путь к автономной работе отдела</p>
+      <div class="timeline animate-in delay-4">
+        <div class="timeline-item">
+          <div class="timeline-days">30</div>
+          <div class="timeline-period">до 25 июля 2026</div>
+          <div class="timeline-goal">Принять отдел и навести порядок</div>
+          <ul class="timeline-tasks">
+            <li>Составить реестр объектов и сроков</li>
+            <li>Провести собрание, представиться</li>
+            <li>Распределить задачи, завести журнал</li>
+            <li>Запустить нормоконтроль</li>
+            <li>Завести табель учёта времени</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-days">60</div>
+          <div class="timeline-period">до 25 августа 2026</div>
+          <div class="timeline-goal">Стабилизировать качество</div>
+          <ul class="timeline-tasks">
+            <li>Стабилизировать нормоконтроль, чеклист</li>
+            <li>Согласовать график отпусков</li>
+            <li>Наладить еженедельную отчётность</li>
+            <li>Выявить узкие места по срокам</li>
+            <li>Подготовиться к онбордингу новичка</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-days">90</div>
+          <div class="timeline-period">до 25 сентября 2026</div>
+          <div class="timeline-goal">Автономность отдела</div>
+          <ul class="timeline-tasks">
+            <li>Документация по Регламенту без замечаний</li>
+            <li>Запущен онбординг Конструктора 2</li>
+            <li>Сформированы метрики работы</li>
+            <li>Отдел работает самостоятельно</li>
+            <li>Итоговая оценка адаптации</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: METRICS -->
+  <div class="slide slide-dark" data-slide="12">
+    <div class="content">
+      <div class="animate-in delay-1"><span class="section-label">Цели</span></div>
+      <h2 class="slide-heading animate-in delay-2">Метрики успеха</h2>
+      <p class="slide-subheading animate-in delay-3">Как будет оцениваться результат к +90 дням</p>
+      <div class="metrics-grid animate-in delay-4">
+        <div class="metric-card">
+          <div class="metric-value">&ge;90%</div>
+          <div class="metric-label">Объектов выпущено в срок</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">&#128200;</div>
+          <div class="metric-label">Рост доли чертежей без замечаний с 1-го раза</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">100%</div>
+          <div class="metric-label">Табель и график отпусков ведутся без срывов</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">&#9989;</div>
+          <div class="metric-label">Адаптация новичка по плану онбординга</div>
+        </div>
+      </div>
+      <div class="highlight-box animate-in delay-5">
+        <p><strong>Definition of Done:</strong> все приказы подписаны, отдел ознакомлен, инструменты руководителя ведутся, пройдена контрольная точка +90 дней.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: FINAL -->
+  <div class="slide slide-final" data-slide="13">
+    <div class="content">
+      <div class="final-emoji animate-in delay-1">&#127775;</div>
+      <div class="final-text animate-in delay-2">Вперёд, Валентина!<br>Отдел в надёжных руках</div>
+      <p class="final-sub animate-in delay-3">
+        Желаем успешного старта в новой роли. Мы верим в ваш профессионализм и лидерский потенциал.
+      </p>
+      <div class="badge-row animate-in delay-4" style="margin-top: 32px;">
+        <div class="badge">
+          <span class="badge-icon">&#128100;</span>
+          <div class="badge-content">
+            <span class="badge-label">Ваш наставник</span>
+            <span class="badge-value">Покалюк Д.Г.</span>
+          </div>
+        </div>
+        <div class="badge">
+          <span class="badge-icon">&#127970;</span>
+          <div class="badge-content">
+            <span class="badge-label">Компания</span>
+            <span class="badge-value">ООО «АльденаГрупп»</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAVIGATION -->
+<div class="kbd-hint">
+  <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> или пробел для навигации
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#8592;</button>
+  <div class="nav-dots" id="navDots"></div>
+  <span class="slide-counter" id="slideCounter">1 / 14</span>
+  <button class="nav-btn" id="nextBtn" onclick="navigate(1)">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let currentSlide = 0;
+
+  const dotsContainer = document.getElementById('navDots');
+  const counter = document.getElementById('slideCounter');
+  const progressBar = document.getElementById('progressBar');
+
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+
+  function updateUI() {
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'prev');
+      if (i === currentSlide) s.classList.add('active');
+      else if (i < currentSlide) s.classList.add('prev');
+    });
+
+    document.querySelectorAll('.nav-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === currentSlide);
+    });
+
+    counter.textContent = (currentSlide + 1) + ' / ' + totalSlides;
+    progressBar.style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+  }
+
+  function navigate(dir) {
+    const next = currentSlide + dir;
+    if (next >= 0 && next < totalSlides) {
+      currentSlide = next;
+      updateUI();
+    }
+  }
+
+  function goToSlide(i) {
+    currentSlide = i;
+    updateUI();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); goToSlide(totalSlides - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) navigate(diff > 0 ? 1 : -1);
+  });
+
+  updateUI();
+</script>
+
+</body>
+</html>
