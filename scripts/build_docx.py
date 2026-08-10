@@ -17,9 +17,11 @@
   > текст             цитата (курсив)
   | a | b |           таблица (строка-разделитель |---| отделяет шапку)
   **жирный**          жирный текст внутри строки
+  ![подпись](файл.png)  изображение во всю ширину полосы с подписью под ним
   <!-- landscape -->  альбомная ориентация страницы (для широких таблиц)
   <!-- style:rich --> оформление: цветные заголовки, заливка таблиц, «Стр. X из Y»
   <!-- pagebreak -->  разрыв страницы
+  <!-- section:landscape --> новый раздел с альбомной ориентацией (для чертежей)
   <!-- toc -->        автособираемое оглавление Word (кликабельное, с номерами страниц)
   <!-- ... -->        комментарий (игнорируется)
   ---                 разделитель (игнорируется)
@@ -34,7 +36,7 @@ try:
     from docx.shared import Pt, Cm, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
     from docx.enum.table import WD_TABLE_ALIGNMENT
-    from docx.enum.section import WD_ORIENT
+    from docx.enum.section import WD_ORIENT, WD_SECTION
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
 except ImportError:
@@ -142,6 +144,46 @@ def enable_field_update(doc):
     doc.settings.element.append(el)
 
 
+def start_landscape_section(doc):
+    """Новый раздел документа с альбомной ориентацией — для широких чертежей."""
+    s = doc.add_section(WD_SECTION.NEW_PAGE)
+    s.page_width = Cm(21.0)
+    s.page_height = Cm(29.7)
+    if s.page_width < s.page_height:
+        s.orientation = WD_ORIENT.LANDSCAPE
+        s.page_width, s.page_height = s.page_height, s.page_width
+    s.top_margin = Cm(1.5)
+    s.bottom_margin = Cm(1.5)
+    s.left_margin = Cm(1.5)
+    s.right_margin = Cm(1.5)
+    return s
+
+
+def add_image(doc, path, caption, base_dir):
+    """Изображение во всю ширину полосы набора с подписью под ним."""
+    full = path if os.path.isabs(path) else os.path.join(base_dir, path)
+    if not os.path.exists(full):
+        print("    ! не найдено изображение:", path)
+        return
+    s = doc.sections[-1]
+    usable_w = s.page_width - s.left_margin - s.right_margin
+    # запас по высоте на заголовок над иллюстрацией и подпись под ней
+    usable_h = s.page_height - s.top_margin - s.bottom_margin - Cm(2.4)
+    pic = doc.add_picture(full, width=usable_w)
+    if pic.height > usable_h:
+        k = usable_h / pic.height
+        pic.height = int(pic.height * k)
+        pic.width = int(pic.width * k)
+    doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if caption:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(caption)
+        run.italic = True
+        run.font.name = FONT
+        run.font.size = Pt(10)
+
+
 def is_table_row(line):
     return line.strip().startswith("|") and line.strip().endswith("|")
 
@@ -208,6 +250,9 @@ def render(md_path, docx_path):
     doc = Document()
     set_base_style(doc)
     for section in doc.sections:
+        # формат A4 (шаблон python-docx по умолчанию — Letter)
+        section.page_width = Cm(21.0)
+        section.page_height = Cm(29.7)
         if landscape and section.page_width < section.page_height:
             section.orientation = WD_ORIENT.LANDSCAPE
             section.page_width, section.page_height = (
@@ -231,6 +276,17 @@ def render(md_path, docx_path):
             continue
         if stripped == "<!-- toc -->":
             add_toc(doc)
+            i += 1
+            continue
+        if stripped == "<!-- section:landscape -->":
+            start_landscape_section(doc)
+            i += 1
+            continue
+
+        # Изображение: ![подпись](путь)
+        m = re.fullmatch(r"!\[(.*?)\]\((.+?)\)", stripped)
+        if m:
+            add_image(doc, m.group(2), m.group(1), os.path.dirname(os.path.abspath(md_path)))
             i += 1
             continue
 
