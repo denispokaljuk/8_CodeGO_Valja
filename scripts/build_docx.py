@@ -10,11 +10,17 @@
 
 Поддерживаемый markdown:
   # ## ###            заголовки
+  !! текст            крупный центрированный текст титульного листа (вне оглавления)
+  ! текст             центрированный текст титульного листа (вне оглавления)
   >> текст            абзац с выравниванием вправо (УТВЕРЖДАЮ, блок подписи)
   - текст             маркированный список
   > текст             цитата (курсив)
   | a | b |           таблица (строка-разделитель |---| отделяет шапку)
   **жирный**          жирный текст внутри строки
+  <!-- landscape -->  альбомная ориентация страницы (для широких таблиц)
+  <!-- style:rich --> оформление: цветные заголовки, заливка таблиц, «Стр. X из Y»
+  <!-- pagebreak -->  разрыв страницы
+  <!-- toc -->        автособираемое оглавление Word (кликабельное, с номерами страниц)
   <!-- ... -->        комментарий (игнорируется)
   ---                 разделитель (игнорируется)
   строки "1. ..."     остаются как есть (нумерация пунктов документа)
@@ -25,12 +31,21 @@ import sys
 
 try:
     from docx import Document
-    from docx.shared import Pt, Cm
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Pt, Cm, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
     from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.enum.section import WD_ORIENT
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
 except ImportError:
     print("Не установлен python-docx. Выполните: python -m pip install python-docx")
     sys.exit(1)
+
+# Палитра оформления (совпадает с прежней редакцией Регламента)
+CLR_H1 = RGBColor(0x1F, 0x38, 0x64)   # тёмно-синий — разделы
+CLR_H2 = RGBColor(0x2E, 0x74, 0xB5)   # насыщенный голубой — подразделы
+FILL_HEAD = "D9E2F3"                  # шапка таблиц — светло-голубой
+FILL_ROW = "F2F2F2"                   # чётные строки таблиц — светло-серый
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_ROOT = os.path.join(ROOT, "_build", "docx")
@@ -41,8 +56,10 @@ SRC_DIRS = [
     "02_Положение_об_отделе",
     "03_Внедрение_и_коллектив",
     "04_Шаблоны_управления_отделом",
+    "05_Регламент_конструкторов",
 ]
-SKIP_FILES = {"README.md"}
+# README — служебный; Регламент_КМД_текст.md — выжимка из старого .docx, не собирается
+SKIP_FILES = {"README.md", "Регламент_КМД_текст.md"}
 
 FONT = "Times New Roman"
 
@@ -67,6 +84,64 @@ def add_runs_with_bold(paragraph, text):
             run.bold = True
 
 
+def shade(cell, fill):
+    """Заливка ячейки таблицы."""
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:val"), "clear")
+    shd.set(qn("w:color"), "auto")
+    shd.set(qn("w:fill"), fill)
+    cell._tc.get_or_add_tcPr().append(shd)
+
+
+def add_field(paragraph, instr):
+    """Вставка поля Word (PAGE, NUMPAGES, TOC …)."""
+    run = paragraph.add_run()
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    instr_el = OxmlElement("w:instrText")
+    instr_el.set(qn("xml:space"), "preserve")
+    instr_el.text = instr
+    sep = OxmlElement("w:fldChar")
+    sep.set(qn("w:fldCharType"), "separate")
+    txt = OxmlElement("w:t")
+    txt.text = "…"
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    for el in (begin, instr_el, sep, txt, end):
+        run._r.append(el)
+    return run
+
+
+def add_toc(doc):
+    """Автособираемое оглавление по заголовкам 1–2 уровня."""
+    p = doc.add_paragraph()
+    add_field(p, 'TOC \\o "1-2" \\h \\z \\u')
+
+
+def add_page_footer(section):
+    """Колонтитул «Стр. X из Y»."""
+    p = section.footer.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r = p.add_run("Стр. ")
+    r.font.name = FONT
+    r.font.size = Pt(10)
+    add_field(p, "PAGE")
+    r2 = p.add_run(" из ")
+    r2.font.name = FONT
+    r2.font.size = Pt(10)
+    add_field(p, "NUMPAGES")
+    for run in p.runs:
+        run.font.name = FONT
+        run.font.size = Pt(10)
+
+
+def enable_field_update(doc):
+    """Word обновит оглавление и номера страниц при открытии файла."""
+    el = OxmlElement("w:updateFields")
+    el.set(qn("w:val"), "true")
+    doc.settings.element.append(el)
+
+
 def is_table_row(line):
     return line.strip().startswith("|") and line.strip().endswith("|")
 
@@ -80,7 +155,7 @@ def parse_cells(line):
     return [c.strip() for c in line.strip().strip("|").split("|")]
 
 
-def add_table(doc, rows):
+def add_table(doc, rows, rich=False):
     sep_idx = next((i for i, r in enumerate(rows) if is_separator_row(r)), None)
     header = parse_cells(rows[0]) if sep_idx else None
     body_start = sep_idx + 1 if sep_idx is not None else 0
@@ -92,7 +167,7 @@ def add_table(doc, rows):
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-    def fill(cells_text, bold=False):
+    def fill(cells_text, bold=False, band=None):
         cells = table.add_row().cells
         for j in range(ncols):
             txt = cells_text[j] if j < len(cells_text) else ""
@@ -106,11 +181,19 @@ def add_table(doc, rows):
                 add_runs_with_bold(para, txt)
                 for r in para.runs:
                     r.font.size = Pt(11)
+            if rich and band:
+                shade(cells[j], band)
 
     if header:
-        fill(header, bold=True)
-    for row in body:
-        fill(row)
+        fill(header, bold=True, band=FILL_HEAD)
+        # шапка повторяется на каждой странице при разрыве таблицы
+        tr = table.rows[0]._tr
+        trPr = tr.get_or_add_trPr()
+        el = OxmlElement("w:tblHeader")
+        el.set(qn("w:val"), "true")
+        trPr.append(el)
+    for i, row in enumerate(body):
+        fill(row, band=(FILL_ROW if i % 2 == 0 else None))
     doc.add_paragraph()
 
 
@@ -118,18 +201,38 @@ def render(md_path, docx_path):
     with open(md_path, encoding="utf-8") as f:
         lines = f.read().splitlines()
 
+    directives = {l.strip() for l in lines if l.strip().startswith("<!--")}
+    landscape = "<!-- landscape -->" in directives
+    rich = "<!-- style:rich -->" in directives
+
     doc = Document()
     set_base_style(doc)
     for section in doc.sections:
+        if landscape and section.page_width < section.page_height:
+            section.orientation = WD_ORIENT.LANDSCAPE
+            section.page_width, section.page_height = (
+                section.page_height, section.page_width)
         section.top_margin = Cm(2)
         section.bottom_margin = Cm(2)
         section.left_margin = Cm(2.5)
         section.right_margin = Cm(1.5)
+        if rich:
+            add_page_footer(section)
 
     i = 0
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
+
+        # Директивы
+        if stripped == "<!-- pagebreak -->":
+            doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+            i += 1
+            continue
+        if stripped == "<!-- toc -->":
+            add_toc(doc)
+            i += 1
+            continue
 
         if not stripped or stripped == "---" or stripped.startswith("<!--"):
             i += 1
@@ -141,7 +244,22 @@ def render(md_path, docx_path):
             while i < len(lines) and is_table_row(lines[i]):
                 block.append(lines[i])
                 i += 1
-            add_table(doc, block)
+            add_table(doc, block, rich=rich)
+            continue
+
+        # Титульный лист: крупный и обычный центрированный текст (вне оглавления)
+        if stripped.startswith("!! ") or stripped.startswith("! "):
+            big = stripped.startswith("!! ")
+            text = stripped[3:].strip() if big else stripped[2:].strip()
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(text)
+            run.bold = True
+            run.font.name = FONT
+            run.font.size = Pt(20 if big else 14)
+            if rich and big:
+                run.font.color.rgb = CLR_H1
+            i += 1
             continue
 
         # Выравнивание вправо
@@ -152,30 +270,38 @@ def render(md_path, docx_path):
             i += 1
             continue
 
-        # Заголовки
+        # Заголовки. В rich-режиме используются стили Heading 1/2/3 —
+        # они попадают в автособираемое оглавление и подсвечиваются цветом.
         if stripped.startswith("### "):
-            p = doc.add_paragraph()
+            p = doc.add_paragraph(style="Heading 3" if rich else None)
             run = p.add_run(stripped[4:].strip())
             run.bold = True
             run.font.name = FONT
             run.font.size = Pt(12)
+            if rich:
+                run.font.color.rgb = CLR_H2
             i += 1
             continue
         if stripped.startswith("## "):
-            p = doc.add_paragraph()
+            p = doc.add_paragraph(style="Heading 2" if rich else None)
             run = p.add_run(stripped[3:].strip())
             run.bold = True
             run.font.name = FONT
             run.font.size = Pt(13)
+            if rich:
+                run.font.color.rgb = CLR_H2
             i += 1
             continue
         if stripped.startswith("# "):
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p = doc.add_paragraph(style="Heading 1" if rich else None)
+            if not rich:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = p.add_run(stripped[2:].strip())
             run.bold = True
             run.font.name = FONT
-            run.font.size = Pt(14)
+            run.font.size = Pt(15 if rich else 14)
+            if rich:
+                run.font.color.rgb = CLR_H1
             i += 1
             continue
 
@@ -199,6 +325,9 @@ def render(md_path, docx_path):
         p = doc.add_paragraph()
         add_runs_with_bold(p, stripped)
         i += 1
+
+    if rich:
+        enable_field_update(doc)
 
     os.makedirs(os.path.dirname(docx_path), exist_ok=True)
     doc.save(docx_path)
