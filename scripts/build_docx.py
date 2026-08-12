@@ -17,10 +17,12 @@
   > текст             цитата (курсив)
   | a | b |           таблица (строка-разделитель |---| отделяет шапку)
   **жирный**          жирный текст внутри строки
+  ==текст==           выделение жёлтым маркером (новое в текущей редакции)
   ![подпись](файл.png)  изображение во всю ширину полосы с подписью под ним
   <!-- landscape -->  альбомная ориентация страницы (для широких таблиц)
   <!-- style:rich --> оформление: цветные заголовки, заливка таблиц, «Стр. X из Y»
   <!-- pagebreak -->  разрыв страницы
+  <!-- vspace:N -->   N пустых строк (вертикальный отступ на титульном листе)
   <!-- section:landscape --> новый раздел с альбомной ориентацией (для чертежей)
   <!-- toc -->        автособираемое оглавление Word (кликабельное, с номерами страниц)
   <!-- ... -->        комментарий (игнорируется)
@@ -30,11 +32,12 @@
 import os
 import re
 import sys
+from urllib.parse import unquote
 
 try:
     from docx import Document
     from docx.shared import Pt, Cm, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK, WD_COLOR_INDEX
     from docx.enum.table import WD_TABLE_ALIGNMENT
     from docx.enum.section import WD_ORIENT, WD_SECTION
     from docx.oxml import OxmlElement
@@ -76,14 +79,21 @@ def set_base_style(doc):
 
 
 def add_runs_with_bold(paragraph, text):
-    """Разбор **жирного** внутри строки."""
-    for i, part in enumerate(re.split(r"\*\*", text)):
-        if part == "":
+    """Разбор **жирного** и ==выделенного маркером== внутри строки."""
+    # сначала делим по ==выделению==, затем каждую часть — по **жирному**
+    for k, chunk in enumerate(re.split(r"==", text)):
+        if chunk == "":
             continue
-        run = paragraph.add_run(part)
-        run.font.name = FONT
-        if i % 2 == 1:  # части между ** — жирные
-            run.bold = True
+        marked = k % 2 == 1
+        for i, part in enumerate(re.split(r"\*\*", chunk)):
+            if part == "":
+                continue
+            run = paragraph.add_run(part)
+            run.font.name = FONT
+            if i % 2 == 1:  # части между ** — жирные
+                run.bold = True
+            if marked:
+                run.font.highlight_color = WD_COLOR_INDEX.YELLOW
 
 
 def shade(cell, fill):
@@ -161,6 +171,7 @@ def start_landscape_section(doc):
 
 def add_image(doc, path, caption, base_dir):
     """Изображение во всю ширину полосы набора с подписью под ним."""
+    path = unquote(path)  # пути в markdown могут быть с %20 вместо пробелов
     full = path if os.path.isabs(path) else os.path.join(base_dir, path)
     if not os.path.exists(full):
         print("    ! не найдено изображение:", path)
@@ -214,15 +225,11 @@ def add_table(doc, rows, rich=False):
         for j in range(ncols):
             txt = cells_text[j] if j < len(cells_text) else ""
             para = cells[j].paragraphs[0]
-            if bold:
-                run = para.add_run(txt)
-                run.font.name = FONT
-                run.bold = True
-                run.font.size = Pt(11)
-            else:
-                add_runs_with_bold(para, txt)
-                for r in para.runs:
-                    r.font.size = Pt(11)
+            add_runs_with_bold(para, txt)
+            for r in para.runs:
+                r.font.size = Pt(11)
+                if bold:
+                    r.bold = True
             if rich and band:
                 shade(cells[j], band)
 
@@ -282,6 +289,12 @@ def render(md_path, docx_path):
             start_landscape_section(doc)
             i += 1
             continue
+        m_vs = re.fullmatch(r"<!-- vspace:(\d+) -->", stripped)
+        if m_vs:
+            for _ in range(int(m_vs.group(1))):
+                doc.add_paragraph()
+            i += 1
+            continue
 
         # Изображение: ![подпись](путь)
         m = re.fullmatch(r"!\[(.*?)\]\((.+?)\)", stripped)
@@ -328,45 +341,33 @@ def render(md_path, docx_path):
 
         # Заголовки. В rich-режиме используются стили Heading 1/2/3 —
         # они попадают в автособираемое оглавление и подсвечиваются цветом.
-        if stripped.startswith("### "):
-            p = doc.add_paragraph(style="Heading 3" if rich else None)
-            run = p.add_run(stripped[4:].strip())
-            run.bold = True
-            run.font.name = FONT
-            run.font.size = Pt(12)
-            if rich:
-                run.font.color.rgb = CLR_H2
-            i += 1
-            continue
-        if stripped.startswith("## "):
-            p = doc.add_paragraph(style="Heading 2" if rich else None)
-            run = p.add_run(stripped[3:].strip())
-            run.bold = True
-            run.font.name = FONT
-            run.font.size = Pt(13)
-            if rich:
-                run.font.color.rgb = CLR_H2
-            i += 1
-            continue
-        if stripped.startswith("# "):
-            p = doc.add_paragraph(style="Heading 1" if rich else None)
-            if not rich:
+        m_h = re.match(r"(#{1,3}) +(.*)", stripped)
+        if m_h:
+            level = len(m_h.group(1))
+            style = {1: "Heading 1", 2: "Heading 2", 3: "Heading 3"}[level]
+            size = {1: 15 if rich else 14, 2: 13, 3: 12}[level]
+            color = CLR_H1 if level == 1 else CLR_H2
+            p = doc.add_paragraph(style=style if rich else None)
+            if level == 1 and not rich:
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = p.add_run(stripped[2:].strip())
-            run.bold = True
-            run.font.name = FONT
-            run.font.size = Pt(15 if rich else 14)
-            if rich:
-                run.font.color.rgb = CLR_H1
+            # через add_runs_with_bold — чтобы работало ==выделение== в заголовке
+            add_runs_with_bold(p, m_h.group(2).strip())
+            for run in p.runs:
+                run.bold = True
+                run.font.name = FONT
+                run.font.size = Pt(size)
+                if rich:
+                    run.font.color.rgb = color
             i += 1
             continue
 
         # Цитата
         if stripped.startswith(">"):
             p = doc.add_paragraph()
-            run = p.add_run(stripped.lstrip(">").strip())
-            run.italic = True
-            run.font.name = FONT
+            add_runs_with_bold(p, stripped.lstrip(">").strip())
+            for run in p.runs:
+                run.italic = True
+                run.font.name = FONT
             i += 1
             continue
 
